@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Капитанский Дневник v8.0</title>
+    <style>
+        body { background: #1a1a1a; color: #eee; font-family: Arial; padding: 20px; text-align: center; }
+        input, button, select, textarea { margin: 8px; padding: 10px; font-size: 16px; background: #333; color: #eee; border: 1px solid #555; border-radius: 5px; }
+        button { background: #ff9900; color: #000; font-weight: bold; cursor: pointer; }
+        .entry { background: #222; border-radius: 8px; padding: 15px; margin: 20px 0; text-align: left; }
+        .entry h3 { color: #ff9900; }
+        .media { display: flex; flex-wrap: wrap; gap: 10px; }
+        .media img { max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #555; }
+        .media iframe { width: 300px; height: 200px; border-radius: 8px; border: 2px solid #555; }
+        #login, #app { display: none; }
+    </style>
+</head>
+<body>
+    <div id="login">
+        <h1>🛴 Капитанский Дневник</h1>
+        <input type="password" id="pass" placeholder="Пароль">
+        <button onclick="checkPass()">Войти</button>
+    </div>
+    <div id="app">
+        <h1>🛴 Архив Капитана</h1>
+        <div id="publisher">
+            <input type="date" id="dateInput">
+            <select id="categoryInput">
+                <option value="Трюки">Трюки</option>
+                <option value="Зал">Зал</option>
+                <option value="Еда">Еда</option>
+                <option value="Люди">Люди</option>
+                <option value="Природа">Природа</option>
+                <option value="Другое">Другое</option>
+            </select>
+            <textarea id="noteInput" rows="2" placeholder="Твоя заметка..."></textarea>
+            <input type="url" id="photoUrl" placeholder="Ссылка на фото (Imgur, VK и т.д.)">
+            <input type="url" id="videoUrl" placeholder="Ссылка на видео (YouTube)">
+            <button onclick="generateEntry()">Сгенерировать код для data.json</button>
+            <button onclick="copyAndOpenData()">Скопировать и перейти к data.json</button>
+            <div id="generatedCode" style="background:#111; padding:12px; margin-top:12px; white-space:pre-wrap; text-align:left; display:none;"></div>
+        </div>
+        <div id="entries">Загрузка...</div>
+    </div>
+
+    <script>
+        const PASSWORD = 'track360';
+        const DATA_URL = 'data.json';
+
+        window.onload = function() {
+            document.getElementById('login').style.display = 'block';
+            document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
+        };
+
+        function checkPass() {
+            if (document.getElementById('pass').value === PASSWORD) {
+                document.getElementById('login').style.display = 'none';
+                document.getElementById('app').style.display = 'block';
+                loadEntries();
+            } else {
+                alert('Неверный пароль!');
+            }
+        }
+
+        async function loadEntries() {
+            const container = document.getElementById('entries');
+            try {
+                const response = await fetch(DATA_URL);
+                const data = await response.json();
+                container.innerHTML = '';
+                data.reverse().forEach(entry => {
+                    const div = document.createElement('div');
+                    div.className = 'entry';
+                    let mediaHTML = '';
+                    if (entry.media) {
+                        entry.media.forEach(m => {
+                            if (m.type === 'photo') {
+                                mediaHTML += `<img src="${m.url}" alt="photo">`;
+                            } else if (m.type === 'video') {
+                                let embedUrl = m.url;
+                                if (m.url.includes('youtube.com/watch?v=')) {
+                                    embedUrl = `https://www.youtube.com/embed/${new URL(m.url).searchParams.get('v')}`;
+                                } else if (m.url.includes('youtu.be/')) {
+                                    embedUrl = `https://www.youtube.com/embed/${m.url.split('youtu.be/')[1].split('?')[0]}`;
+                                }
+                                mediaHTML += `<iframe src="${embedUrl}" allowfullscreen></iframe>`;
+                            }
+                        });
+                    }
+                    div.innerHTML = `<h3>${entry.date} — ${entry.category}</h3><p>${entry.note || ''}</p><div class="media">${mediaHTML}</div>`;
+                    container.appendChild(div);
+                });
+            } catch (err) {
+                container.innerHTML = '<p>Ошибка загрузки. Проверь, что файл data.json существует.</p>';
+            }
+        }
+
+        function generateEntry() {
+            const date = document.getElementById('dateInput').value;
+            const category = document.getElementById('categoryInput').value;
+            const note = document.getElementById('noteInput').value;
+            const photoUrl = document.getElementById('photoUrl').value.trim();
+            const videoUrl = document.getElementById('videoUrl').value.trim();
+            
+            const media = [];
+            if (photoUrl) media.push({ type: "photo", url: photoUrl });
+            if (videoUrl) media.push({ type: "video", url: videoUrl });
+
+            const entry = { date, category, note, media };
+            const code = JSON.stringify(entry, null, 2);
+            document.getElementById('generatedCode').textContent = code + ',';
+            document.getElementById('generatedCode').style.display = 'block';
+        }
+
+        function copyAndOpenData() {
+            const code = document.getElementById('generatedCode').textContent;
+            if (!code) return alert('Сначала сгенерируй код!');
+            navigator.clipboard.writeText(code).then(() => {
+                window.open('https://github.com/kep0956kononenko-ctrl/captain-log/edit/main/data.json', '_blank');
+            });
+        }
+    </script>
+</body>
+</html>
