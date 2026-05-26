@@ -1,1 +1,15 @@
-[]
+[{
+  "date": "2026-05-26",
+  "category": "Трюки",
+  "note": "TEST",
+  "media": [
+    {
+      "type": "photo",
+      "url": "https://iimg.su/i/uH18jq"
+    },
+    {
+      "type": "video",
+      "url": "https://www.youtube.com/watch?v=-452p_9ESbM"
+    }
+  ]
+},]
